@@ -6,37 +6,53 @@ if(MSVC)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
     set(BUILD_SHARED_LIBS TRUE)
 endif()
-set(OSBitness 32)
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(OSBitness 64)
-endif()
 
 
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies)
 
-set(ProjectPath "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}${OSBitness}/${CMAKE_BUILD_TYPE}")
+set(ProjectPath "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ProjectPath})
-
-# use installed boost
-set(BOOST_ROOT $ENV{BOOST_ROOT})
-set(Boost_INCLUDE_DIRS $ENV{BOOST_INCLUDE_DIR})
-set(Boost_LIBRARIES $ENV{BOOST_LIBRARY_DIR})
 
 set(Boost_USE_STATIC_LIBS OFF) 
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.87 REQUIRED COMPONENTS filesystem system)
+find_package(Boost 1.87 REQUIRED CONFIG)
 
-if(NOT TARGET nlohmann_json)
-    add_subdirectory(external/json)
+if(Boost_FOUND)
+    message(STATUS "Boost found!!!")
+    message(STATUS ${Boost_INCLUDE_DIRS})
+    message(STATUS ${Boost_LIBRARIES})
+else()
+    message(STATUS "THe boost does NOT found")
 endif()
 
-# Include directories
-include_directories(${Boost_INCLUDE_DIRS})
+find_package(OpenSSL REQUIRED CONFIG)
 
-add_executable(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/src/main.cpp)
+if(OpenSSL_FOUND)
+    message(STATUS "OpenSSL found!!!")
+    message(STATUS ${OpenSSL_INCLUDE_DIRS})
+    message(STATUS ${OpenSSL_LIBRARIES})
+else()
+    message(STATUS "OpenSSL does NOT found")
+endif()
 
-# Link libraries
-set(CMAKE_FIND_LIBRARY_SUFFIXES .so)
-#link_libraries(MyExecutable PRIVATE ${Boost_LIBRARIES})
-link_libraries(${PROJECT_NAME} PRIVATE Boost::system)
-target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external)
+
+file(GLOB SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    nlohmann_json::nlohmann_json
+    Boost::boost 
+    Boost::system 
+    Boost::thread
+    ${OpenSSL_LIBRARIES}
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${Boost_INCLUDE_DIRS}
+    ${OpenSSL_INCLUDE_DIRS}
+)
