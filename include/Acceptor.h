@@ -3,11 +3,14 @@
 #include <deque>
 #include <mutex>
 #include <memory>
+#include <unordered_set>
 
 #include "boost/asio.hpp"
 #include "boost/asio/ssl.hpp"
 
 #include "boost/beast.hpp"
+
+#include "ClientManager.h"
 
 namespace beast = boost::beast;         
 namespace http = beast::http;           
@@ -15,22 +18,19 @@ namespace net = boost::asio;
 namespace ssl = boost::asio::ssl;       
 using tcp = boost::asio::ip::tcp;
 
-
 class Acceptor : public std::enable_shared_from_this<Acceptor>
 {
 public:
-    Acceptor(bool& error, net::io_context& ioc, tcp::endpoint ep, ssl::context& sslCtx, bool& status, std::deque<std::shared_ptr<Service>>& deque, std::mutex& mtx);
+    Acceptor(bool& error, net::io_context& ioc, tcp::endpoint ep, ssl::context& sslCtx, bool& status, ClientManager& clientManager);
 
     void start_accept();
 
 private:
-
     net::io_context& m_ioc;
     tcp::acceptor m_acceptor;
 
+    // reference type from the server
     bool& m_serverStatus;
-    std::deque<std::shared_ptr<Service>>& m_clients; 
-    std::mutex& m_mtx;
+    ClientManager& m_clientManager;
     ssl::context& m_sslCtx;
-
 };
