@@ -1,5 +1,8 @@
 #pragma once
 
+#include <variant>
+#include <memory>
+
 #include "boost/asio.hpp"
 #include "boost/asio/ssl.hpp"
 #include "boost/beast.hpp"
@@ -18,15 +21,13 @@ class ClientManager;
 class Service
 {
 public:
-    Service(bool& server_status, ClientManager& clientManager, ssl::stream<tcp::socket> socket);
-
     
+    Service(bool& server_status, ClientManager& clientManager, ssl::stream<tcp::socket> socket);
 
 private:
 
     bool& m_server_status;
     ClientManager& m_clientManager;
-    ssl::stream<tcp::socket> m_socket;
-
+    std::variant<ssl::stream<tcp::socket>, tcp::socket> m_socket;
 
 };

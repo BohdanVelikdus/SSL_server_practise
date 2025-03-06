@@ -21,7 +21,7 @@ using tcp = boost::asio::ip::tcp;
 class Acceptor : public std::enable_shared_from_this<Acceptor>
 {
 public:
-    Acceptor(bool& error, net::io_context& ioc, tcp::endpoint ep, ssl::context& sslCtx, bool& status, ClientManager& clientManager);
+    Acceptor(bool& error, net::io_context& ioc, tcp::endpoint ep, std::optional<std::reference_wrapper<ssl::context>> sslCtx, bool& status, ClientManager& clientManager);
 
     void start_accept();
 
@@ -32,5 +32,5 @@ private:
     // reference type from the server
     bool& m_serverStatus;
     ClientManager& m_clientManager;
-    ssl::context& m_sslCtx;
+    std::optional<std::reference_wrapper<ssl::context>> m_sslCtx;
 };

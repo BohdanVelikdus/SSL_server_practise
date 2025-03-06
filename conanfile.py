@@ -7,4 +7,3 @@ class Recepient(ConanFile):
     def requirements(self):
         self.requires("openssl/3.4.1")
         self.requires("boost/1.87.0")
-

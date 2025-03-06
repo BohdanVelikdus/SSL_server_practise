@@ -17,7 +17,7 @@ class ClientManager
 public:
     ClientManager() = default;
 
-    void add_client();
+    void add_client(std::shared_ptr<Service> clientToAdd);
 
     void remove_client(std::shared_ptr<Service> clientToRemove);
 

@@ -36,7 +36,7 @@ SSLServerBuilder &SSLServerBuilder::setPassword(std::string passwd)
     return *this;
 }
 
-SSLServerBuilder &SSLServerBuilder::setEndpoints(const std::vector<tcp::endpoint> &endpoints)
+SSLServerBuilder &SSLServerBuilder::setEndpoints(const std::vector<std::pair<tcp::endpoint, bool>>& endpoints)
 {
     // verify the endpoints
     if(endpoints.size() == 0)
@@ -44,7 +44,7 @@ SSLServerBuilder &SSLServerBuilder::setEndpoints(const std::vector<tcp::endpoint
         return *this;
     }
     net::io_context ioc;
-    for(auto ep : endpoints)
+    for(auto& [ep, bl] : endpoints)
     {
         tcp::acceptor acceptor(ioc, ep);
         boost::system::error_code ec;

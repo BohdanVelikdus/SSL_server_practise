@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <exception>
 #include <string>
+#include <utility>
 
 #include "boost/asio.hpp"
 #include "boost/asio/ssl.hpp"
@@ -42,7 +43,7 @@ private:
 
     std::string passwordCallback(std::size_t max_length, ssl::context::password_purpose purpose);
 
-    SSLServer(const std::vector<tcp::endpoint>& endpoints, int threadCount, std::string passwdCert, std::string certificatePath, std::string priKeyPath );
+    SSLServer(const std::vector<std::pair<tcp::endpoint, bool>>& endpoints, int threadCount, std::string passwdCert, std::string certificatePath, std::string priKeyPath );
 
     net::io_context m_ioc;    
     net::executor_work_guard<net::io_context::executor_type> m_executorWorkGuard;
@@ -52,7 +53,7 @@ private:
     std::string m_passwdCert;
     std::string m_certificatePath;
     std::string m_priKeyPath;
-    std::vector<tcp::endpoint> m_endpoints;
+    std::vector<std::pair<tcp::endpoint, bool>> m_endpoints;
     int m_threadCount;
 
     bool getError();

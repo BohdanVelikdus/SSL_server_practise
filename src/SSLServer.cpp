@@ -6,6 +6,8 @@
 #include <thread>
 #include <string>
 
+#include <variant>
+
 #include "boost/asio.hpp"
 #include "boost/asio/ssl.hpp"
 #include "boost/beast.hpp"
@@ -14,7 +16,7 @@
 
 #include "Utils.h"
 
-SSLServer::SSLServer(const std::vector<tcp::endpoint>& endpoints, int threadCount, std::string passwdCert, std::string certificatePath, std::string priKeyPath) : 
+SSLServer::SSLServer(const std::vector<std::pair<tcp::endpoint, bool>>& endpoints, int threadCount, std::string passwdCert, std::string certificatePath, std::string priKeyPath) : 
     m_executorWorkGuard(m_ioc.get_executor()),
     m_sslCtx(ssl::context::tls_server),
     m_executionThreads(threadCount)
@@ -54,15 +56,12 @@ bool SSLServer::initServer()
         std::cout << "Error setting password callback: " << ex.what() << std::endl;
         return false;
     }
-    
-
     this->m_sslCtx.use_certificate_chain_file(std::filesystem::absolute(this->m_certificatePath).string(), ec);
     if(ec.value() != 0)
     {
         std::cout << "Error with setting path to certificate\n";
         return false;
     }
-
     this->m_sslCtx.use_private_key_file(std::filesystem::absolute(this->m_priKeyPath).string(), ssl::context::pem, ec);
     if(ec.value() != 0)
     {
@@ -70,10 +69,22 @@ bool SSLServer::initServer()
         return false;
     }
 
-    for(auto& ep : m_endpoints)
+    // create a function to verify wht certificate and private key matches
+
+    for(auto& [ep, encrypted] : m_endpoints)
     {
-        std::shared_ptr<Acceptor> acc = std::make_shared<Acceptor>(this->error, this->m_ioc, ep, this->m_sslCtx, this->server_status, this->m_clientManager);
-        this->m_acceptors.push_back(acc);
+        if(encrypted)
+        {
+            std::optional<std::reference_wrapper<ssl::context>> sl = this->m_sslCtx;
+            std::shared_ptr<Acceptor> acc = std::make_shared<Acceptor>(this->error, this->m_ioc, ep, sl, this->server_status, this->m_clientManager);
+            this->m_acceptors.push_back(acc);
+        }
+        else
+        {   
+            std::shared_ptr<Acceptor> acc = std::make_shared<Acceptor>(this->error, this->m_ioc, ep, std::nullopt, this->server_status, this->m_clientManager);
+            this->m_acceptors.push_back(acc);
+        }
+        
     }
 
     if(this->error)
