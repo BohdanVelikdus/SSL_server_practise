@@ -33,7 +33,7 @@ public:
 
     SSLServerBuilder& setPassword(std::string passwd);
 
-    SSLServerBuilder& setEndpoints(const std::vector<std::pair<tcp::endpoint, bool>>& endpoints);
+    SSLServerBuilder& setEndpoints(const std::vector<ServerEndpoint>& endpoints);
 
     SSLServerBuilder& setThreadCount(unsigned int num);
 
@@ -45,7 +45,7 @@ private:
 
     std::unique_ptr<SSLServer> ptr_server = nullptr;
     int threads = std::thread::hardware_concurrency();
-    std::optional<std::vector<std::pair<tcp::endpoint, bool>>> endpoints = std::nullopt;
+    std::optional<std::vector<ServerEndpoint>> endpoints = std::nullopt;
     std::optional<std::string> m_passwdCert = std::nullopt;
     std::optional<std::string> m_certificatePath = std::nullopt;
     std::optional<std::string> m_priKeyPath = std::nullopt;

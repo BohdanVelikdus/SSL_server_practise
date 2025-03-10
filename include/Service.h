@@ -2,6 +2,9 @@
 
 #include <variant>
 #include <memory>
+#include <iostream>
+
+
 
 #include "boost/asio.hpp"
 #include "boost/asio/ssl.hpp"
@@ -18,16 +21,23 @@ using tcp = boost::asio::ip::tcp;
 
 class ClientManager;
 
-class Service
+class Service : public std::enable_shared_from_this<Service>
 {
 public:
-    
-    Service(bool& server_status, ClientManager& clientManager, ssl::stream<tcp::socket> socket);
+
+    using ClientSocket = std::variant< std::shared_ptr<tcp::socket>, std::shared_ptr<ssl::stream<tcp::socket>> >;
+
+    Service(bool& server_status, ClientManager& clientManager, ClientSocket clientSocket);
+
+    void echo();
 
 private:
 
     bool& m_server_status;
     ClientManager& m_clientManager;
-    std::variant<ssl::stream<tcp::socket>, tcp::socket> m_socket;
+    ClientSocket m_socket;
+
+    net::streambuf m_buffer;
+    std::vector<char> m_data;
 
 };

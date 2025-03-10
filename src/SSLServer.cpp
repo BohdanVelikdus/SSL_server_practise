@@ -16,7 +16,7 @@
 
 #include "Utils.h"
 
-SSLServer::SSLServer(const std::vector<std::pair<tcp::endpoint, bool>>& endpoints, int threadCount, std::string passwdCert, std::string certificatePath, std::string priKeyPath) : 
+SSLServer::SSLServer(const std::vector<ServerEndpoint>& endpoints, int threadCount, std::string passwdCert, std::string certificatePath, std::string priKeyPath) : 
     m_executorWorkGuard(m_ioc.get_executor()),
     m_sslCtx(ssl::context::tls_server),
     m_executionThreads(threadCount)
@@ -34,11 +34,9 @@ bool SSLServer::initServer()
     int i = 0;
     for(; i < m_threadCount; ++i)
     {
-        m_executionThreads[i].reset(
-            new std::thread([this]()
-            {
-                this->m_ioc.run();
-            }));
+        m_executionThreads.emplace_back(new std::thread([this](){
+            this->m_ioc.run();
+        }));
     }
 
     this->m_sslCtx.set_options(
@@ -56,7 +54,9 @@ bool SSLServer::initServer()
         std::cout << "Error setting password callback: " << ex.what() << std::endl;
         return false;
     }
+    
     this->m_sslCtx.use_certificate_chain_file(std::filesystem::absolute(this->m_certificatePath).string(), ec);
+
     if(ec.value() != 0)
     {
         std::cout << "Error with setting path to certificate\n";
@@ -68,24 +68,21 @@ bool SSLServer::initServer()
         std::cout << "Error with setting private key\n";
         return false;
     }
-
+    this->m_sslCtx.set_verify_mode(ssl::verify_none);
     // create a function to verify wht certificate and private key matches
-
-    for(auto& [ep, encrypted] : m_endpoints)
+    for(auto ep : m_endpoints)
     {
-        if(encrypted)
+        if(ep.isEncrypted)
         {
-            std::optional<std::reference_wrapper<ssl::context>> sl = this->m_sslCtx;
-            std::shared_ptr<Acceptor> acc = std::make_shared<Acceptor>(this->error, this->m_ioc, ep, sl, this->server_status, this->m_clientManager);
-            this->m_acceptors.push_back(acc);
+            this->m_acceptors.push_back(std::make_shared<AcceptorEncrypt>(this->error, this->m_ioc, ep.endpoint, this->server_status, this->m_clientManager, this->m_sslCtx) );
         }
         else
         {   
-            std::shared_ptr<Acceptor> acc = std::make_shared<Acceptor>(this->error, this->m_ioc, ep, std::nullopt, this->server_status, this->m_clientManager);
-            this->m_acceptors.push_back(acc);
+            this->m_acceptors.push_back(std::make_shared<AcceptorPlain>(this->error, this->m_ioc, ep.endpoint, this->server_status, this->m_clientManager));
         }
-        
     }
+
+    
 
     if(this->error)
         return false;
@@ -107,7 +104,6 @@ void SSLServer::startServer()
 {
     if(!(this->error))
     {
-        // here i will simply call a 
         for(auto& acceptor : m_acceptors)
         {
             acceptor->start_accept();
